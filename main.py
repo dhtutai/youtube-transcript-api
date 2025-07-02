@@ -1,9 +1,10 @@
-import requests
 from fastapi import FastAPI, HTTPException
+from youtube_transcript_api import YouTubeTranscriptApi
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+# Allow all CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -11,13 +12,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+def root():
+    return {"status": "proxy online"}
+
 @app.get("/transcript")
-def proxy_to_local(video_id: str):
+def get_transcript(video_id: str):
     try:
-        # Route the request to your ngrok proxy
-        proxy_url = f"https://cd23-185-187-168-171.ngrok-free.app/transcript?video_id={video_id}"
-        response = requests.get(proxy_url)
-        response.raise_for_status()
-        return response.json()
+        transcript = YouTubeTranscriptApi.get_transcript(video_id)
+        return {"transcript": transcript}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Proxy failed: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=5000)
